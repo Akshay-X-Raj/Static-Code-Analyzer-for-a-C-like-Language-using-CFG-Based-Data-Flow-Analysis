@@ -1,11 +1,22 @@
 int main() {
-    int x; // Unused variable
-    int y = 5;
+    int x;
+    int y;
+    x = 5;
     
-    if (y > 0) {
+    if (x == 5) {
+        y = 10;
+    } else {
+        y = x + 1;
+    }
+    
+    while (y > 0) {
         y = y - 1;
     }
     
+    int i;
+    for (i = 0; i < 10; i = i + 1) {
+        x = x + 1;
+    }
+    
     return 0;
-    y = 10; // Unreachable code
 }

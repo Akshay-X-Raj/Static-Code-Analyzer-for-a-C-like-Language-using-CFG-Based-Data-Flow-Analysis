@@ -1,0 +1,31 @@
+digraph CFG {
+  rankdir=TB;
+
+  B1 [label="Block 1\ndeclare x\ndeclare y\nx = ...\nif (...) then else\n", shape=box];
+  B2 [label="Block 2\n", shape=box];
+  B3 [label="Block 3\ny = ...\n", shape=box];
+  B4 [label="Block 4\ny = ...\n", shape=box];
+  B5 [label="Block 5\n", shape=box];
+  B6 [label="Block 6\nwhile (...)\n", shape=box];
+  B7 [label="Block 7\ny = ...\n", shape=box];
+  B8 [label="Block 8\ndeclare i\ni = ...\n", shape=box];
+  B9 [label="Block 9\nfor-condition\n", shape=box];
+  B10 [label="Block 10\nx = ...\n", shape=box];
+  B11 [label="Block 11\ni = ...\n", shape=box];
+  B12 [label="Block 12\nreturn ...\n", shape=box];
+
+  B1 -> B3;
+  B1 -> B4;
+  B3 -> B5;
+  B4 -> B5;
+  B5 -> B6;
+  B6 -> B7;
+  B6 -> B8;
+  B7 -> B6;
+  B8 -> B9;
+  B9 -> B10;
+  B9 -> B12;
+  B10 -> B11;
+  B11 -> B9;
+  B12 -> B2;
+}
