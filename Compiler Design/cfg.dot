@@ -1,0 +1,19 @@
+digraph CFG {
+rankdir=TB;
+"START" -> "b + c";
+"b + c" -> "a = b + c";
+"a = b + c" -> "IF";
+"IF" -> "a = a = a";
+"a = a = a" -> "MERGE";
+"MERGE" -> "while ( a";
+"while ( a" -> "1 = while ( a";
+"1 = while ( a" -> "a - 1";
+"a - 1" -> "a = a - 1";
+"a = a - 1" -> "END";
+"IF" -> "MERGE";
+"MERGE" -> "while ( a";
+"while ( a" -> "1 = while ( a";
+"1 = while ( a" -> "a - 1";
+"a - 1" -> "a = a - 1";
+"a = a - 1" -> "END";
+}
