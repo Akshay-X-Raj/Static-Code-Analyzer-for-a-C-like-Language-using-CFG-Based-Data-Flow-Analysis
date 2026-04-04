@@ -1,6 +1,12 @@
 How to compile  
 g++ main.cpp lexer/Lexer.cpp parser/Parser.cpp cfg/CFG.cpp -o compiler
-How to run 
+___________________________________________________________________________
+
+How to run:
+
 ./compiler
+________________________________________________________________
+
 Generate dot file
+
 dot -Tpng cfg.dot -o cfg.png
