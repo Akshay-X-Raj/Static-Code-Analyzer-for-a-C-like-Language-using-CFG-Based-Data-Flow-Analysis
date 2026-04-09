@@ -74,6 +74,7 @@ ASTNode* Parser::parseProgram() {
 
 // ---------- STATEMENTS ----------
 ASTNode* Parser::parseStmt() {
+
     if (peek().type == KW_INT || peek().type == KW_CHAR ||
         peek().type == KW_FLOAT || peek().type == KW_DOUBLE)
         return parseDecl();
@@ -87,13 +88,16 @@ ASTNode* Parser::parseStmt() {
     if (peek().type == KW_IF)
         return parseIf();
 
+    if (peek().type == KW_RETURN)   
+        return parseReturn();
+
     cout << "Unknown statement: " << peek().value << endl;
     get();
     return nullptr;
 }
-
 // ---------- DECL ----------
 ASTNode* Parser::parseDecl() {
+
     Token typeToken = get();
     string type = typeToken.value;
 
@@ -106,11 +110,27 @@ ASTNode* Parser::parseDecl() {
 
     symTable.add(id.value, type);
 
+    ASTNode* expr = nullptr;
+
+    // ✅ Initialization support
+    if (peek().type == ASSIGN) {
+        get(); // =
+
+        expr = parseExpr();
+
+        string exprType = getExprType(expr);
+        symTable.checkType(id.value, exprType);
+    }
+
     match(SEMICOLON);
 
-    return new ASTNode("Decl", id.value);
-}
+    ASTNode* node = new ASTNode("Decl", id.value);
 
+    if (expr != nullptr)
+        node->children.push_back(expr);
+
+    return node;
+}
 // ---------- ASSIGN ----------
 ASTNode* Parser::parseAssign() {
     Token id = get();
@@ -157,6 +177,23 @@ ASTNode* Parser::parsePrint() {
     match(SEMICOLON);
 
     return new ASTNode("Print", format.value + ", " + var);
+}
+ASTNode* Parser::parseReturn() {
+
+    get(); // return
+
+    ASTNode* expr = parseExpr();
+
+    if (expr->type == "ID") {
+        symTable.checkUse(expr->value);
+    }
+
+    match(SEMICOLON);
+
+    ASTNode* node = new ASTNode("Return");
+    node->children.push_back(expr);
+
+    return node;
 }
 
 // ---------- IF ----------

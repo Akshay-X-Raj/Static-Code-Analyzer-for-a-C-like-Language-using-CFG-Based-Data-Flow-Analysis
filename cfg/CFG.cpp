@@ -5,7 +5,6 @@
 
 using namespace std;
 
-//  SYMBOL TABLE 
 extern SymbolTable symTable;
 
 CFG::CFG() {
@@ -17,7 +16,7 @@ CFGNode* createNode(int &count, string label) {
     return new CFGNode(count++, label);
 }
 
-//  EXPRESSION HANDLER
+// Expression to string
 string getExpr(ASTNode* node) {
     if (!node) return "";
 
@@ -49,7 +48,7 @@ string getExpr(ASTNode* node) {
     return node->value;
 }
 
-//  BUILD CFG
+// -------- BUILD CFG --------
 
 CFGNode* CFG::build(ASTNode* root) {
     if (!root) return nullptr;
@@ -62,13 +61,19 @@ CFGNode* CFG::build(ASTNode* root) {
         // -------- DECL --------
         if (stmt->type == "Decl") {
             string var = stmt->value;
-
-            //  get actual type from symbol table
             string type = symTable.getType(var);
 
-            CFGNode* node = createNode(nodeCount, type + " " + var);
-            current->next.push_back(node);
-            current = node;
+            // 🔥 CHECK IF INITIALIZED
+            if (!stmt->children.empty()) {
+                string val = getExpr(stmt->children[0]);
+                CFGNode* node = createNode(nodeCount, var + " = " + val);
+                current->next.push_back(node);
+                current = node;
+            } else {
+                CFGNode* node = createNode(nodeCount, type + " " + var);
+                current->next.push_back(node);
+                current = node;
+            }
         }
 
         // -------- ASSIGN --------
@@ -88,6 +93,20 @@ CFGNode* CFG::build(ASTNode* root) {
             current = node;
         }
 
+        // -------- RETURN --------
+        else if (stmt->type == "Return") {
+            string val = getExpr(stmt->children[0]);
+
+            CFGNode* node = createNode(nodeCount, "return " + val);
+            current->next.push_back(node);
+
+            //  terminate flow after return
+            CFGNode* endNode = createNode(nodeCount, "End");
+            node->next.push_back(endNode);
+
+            return start;  // stop further processing
+        }
+
         // -------- IF --------
         else if (stmt->type == "If") {
 
@@ -99,48 +118,29 @@ CFGNode* CFG::build(ASTNode* root) {
             CFGNode* condNode = createNode(nodeCount, "if (" + condition + ")");
             current->next.push_back(condNode);
 
-            // -------- THEN --------
+            // THEN
             CFGNode* thenNode;
-            if (thenStmt->type == "Print") {
-                thenNode = createNode(nodeCount, "printf(" + thenStmt->value + ")");
-            }
-            else if (thenStmt->type == "Assign") {
+            if (thenStmt->type == "Assign") {
                 string var = thenStmt->children[0]->value;
                 string val = getExpr(thenStmt->children[1]);
                 thenNode = createNode(nodeCount, var + " = " + val);
-            }
-            else if (thenStmt->type == "Decl") {
-                string var = thenStmt->value;
-                string type = symTable.getType(var);
-                thenNode = createNode(nodeCount, type + " " + var);
-            }
-            else {
+            } else {
                 thenNode = createNode(nodeCount, "stmt");
             }
 
-            // -------- ELSE --------
+            // ELSE
             CFGNode* elseNode;
-            if (elseStmt->type == "Print") {
-                elseNode = createNode(nodeCount, "printf(" + elseStmt->value + ")");
-            }
-            else if (elseStmt->type == "Assign") {
+            if (elseStmt->type == "Assign") {
                 string var = elseStmt->children[0]->value;
                 string val = getExpr(elseStmt->children[1]);
                 elseNode = createNode(nodeCount, var + " = " + val);
-            }
-            else if (elseStmt->type == "Decl") {
-                string var = elseStmt->value;
-                string type = symTable.getType(var);
-                elseNode = createNode(nodeCount, type + " " + var);
-            }
-            else {
+            } else {
                 elseNode = createNode(nodeCount, "stmt");
             }
 
             condNode->next.push_back(thenNode);
             condNode->next.push_back(elseNode);
 
-            // -------- MERGE --------
             CFGNode* mergeNode = createNode(nodeCount, "merge");
             thenNode->next.push_back(mergeNode);
             elseNode->next.push_back(mergeNode);
@@ -155,7 +155,7 @@ CFGNode* CFG::build(ASTNode* root) {
     return start;
 }
 
-// ---------------- PRINT CFG ----------------
+// -------- PRINT CFG --------
 
 void printCFGUtil(CFGNode* node, ofstream &out, set<int> &visited) {
     if (!node || visited.count(node->id)) return;

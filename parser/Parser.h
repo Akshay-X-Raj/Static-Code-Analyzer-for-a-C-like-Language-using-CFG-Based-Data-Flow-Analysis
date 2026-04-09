@@ -29,6 +29,6 @@ private:
     ASTNode* parseExpr();//expression
     ASTNode* parseTerm();
     ASTNode* parseFactor();
-
+    ASTNode* parseReturn();
     ASTNode* parseCondition();//a>b
 };

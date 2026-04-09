@@ -8,7 +8,6 @@ Lexer::Lexer(string input) {
     pos = 0;
 }
 
-// ---------------- TOKENIZE ----------------
 vector<Token> Lexer::tokenize() {
 
     vector<Token> tokens;
@@ -17,13 +16,12 @@ vector<Token> Lexer::tokenize() {
 
         char current = code[pos];
 
-        // --------- 1. Skip spaces ---------
         if (isspace(current)) {
             pos++;
             continue;
         }
 
-        // --------- 2. Keywords / Identifiers ---------
+        // -------- Keywords / Identifiers --------
         if (isalpha(current)) {
             string word;
 
@@ -32,28 +30,29 @@ vector<Token> Lexer::tokenize() {
                 pos++;
             }
 
-            // -------- KEYWORDS --------
             if (word == "int")
                 tokens.push_back({KW_INT, word});
             else if (word == "char")
                 tokens.push_back({KW_CHAR, word});
             else if (word == "float")
-                tokens.push_back({KW_FLOAT, word});   
+                tokens.push_back({KW_FLOAT, word});
             else if (word == "double")
-                tokens.push_back({KW_DOUBLE, word}); 
+                tokens.push_back({KW_DOUBLE, word});
             else if (word == "if")
                 tokens.push_back({KW_IF, word});
             else if (word == "else")
                 tokens.push_back({KW_ELSE, word});
             else if (word == "printf")
                 tokens.push_back({KW_PRINTF, word});
+            else if (word == "return")   // ✅ FIX
+                tokens.push_back({KW_RETURN, word});
             else
                 tokens.push_back({IDENTIFIER, word});
 
             continue;
         }
 
-        // --------- 3. Numbers ---------
+        // -------- Numbers --------
         if (isdigit(current)) {
             string num;
 
@@ -66,9 +65,9 @@ vector<Token> Lexer::tokenize() {
             continue;
         }
 
-        // --------- 4. Strings ---------
+        // -------- Strings --------
         if (current == '"') {
-            pos++; // skip opening "
+            pos++;
 
             string str;
             while (pos < code.size() && code[pos] != '"') {
@@ -76,13 +75,13 @@ vector<Token> Lexer::tokenize() {
                 pos++;
             }
 
-            pos++; // skip closing "
+            pos++;
 
             tokens.push_back({STRING, str});
             continue;
         }
 
-        // --------- 5. Relational Operators FIRST ---------
+        // -------- Operators --------
         if (current == '>' || current == '<' || current == '=' || current == '!') {
             string op;
             op += current;
@@ -104,57 +103,16 @@ vector<Token> Lexer::tokenize() {
             continue;
         }
 
-        // --------- 6. Arithmetic Operators ---------
-        if (current == '+') {
-            tokens.push_back({PLUS, "+"});
-            pos++;
-            continue;
-        }
+        if (current == '+') { tokens.push_back({PLUS, "+"}); pos++; continue; }
+        if (current == '-') { tokens.push_back({MINUS, "-"}); pos++; continue; }
+        if (current == '*') { tokens.push_back({MUL, "*"}); pos++; continue; }
+        if (current == '/') { tokens.push_back({DIV, "/"}); pos++; continue; }
 
-        if (current == '-') {
-            tokens.push_back({MINUS, "-"});
-            pos++;
-            continue;
-        }
+        if (current == ';') { tokens.push_back({SEMICOLON, ";"}); pos++; continue; }
+        if (current == '(') { tokens.push_back({LPAREN, "("}); pos++; continue; }
+        if (current == ')') { tokens.push_back({RPAREN, ")"}); pos++; continue; }
+        if (current == ',') { tokens.push_back({COMMA, ","}); pos++; continue; }
 
-        if (current == '*') {
-            tokens.push_back({MUL, "*"});
-            pos++;
-            continue;
-        }
-
-        if (current == '/') {
-            tokens.push_back({DIV, "/"});
-            pos++;
-            continue;
-        }
-
-        // --------- 7. Symbols ---------
-        if (current == ';') {
-            tokens.push_back({SEMICOLON, ";"});
-            pos++;
-            continue;
-        }
-
-        if (current == '(') {
-            tokens.push_back({LPAREN, "("});
-            pos++;
-            continue;
-        }
-
-        if (current == ')') {
-            tokens.push_back({RPAREN, ")"});
-            pos++;
-            continue;
-        }
-
-        if (current == ',') {
-            tokens.push_back({COMMA, ","});  
-            pos++;
-            continue;
-        }
-
-        // --------- 8. Unknown ---------
         pos++;
     }
 

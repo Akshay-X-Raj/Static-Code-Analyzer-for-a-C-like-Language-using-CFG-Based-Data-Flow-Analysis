@@ -14,6 +14,7 @@ enum TokenType {
     KW_IF,
     KW_ELSE,
     KW_PRINTF,
+    KW_RETURN,
 
     // Identifiers & values
     IDENTIFIER,

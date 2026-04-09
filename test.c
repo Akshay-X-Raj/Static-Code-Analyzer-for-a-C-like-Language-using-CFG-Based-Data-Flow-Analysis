@@ -1,12 +1,5 @@
-int x;
-int y;
-
-x = 5;
-y = x + 10;
-
-if (y > 10)
-printf("%d", y);
-else
-printf("%d", x);
-
-
+int a;
+a=5;
+int b ;
+b= 10;
+return a;

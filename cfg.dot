@@ -2,22 +2,15 @@ digraph CFG {
 node [shape=ellipse];
 0 [label="Start"];
 0 -> 1;
-1 [label="int x"];
+1 [label="int a"];
 1 -> 2;
-2 [label="int y"];
+2 [label="a = 5"];
 2 -> 3;
-3 [label="x = 5"];
+3 [label="int b"];
 3 -> 4;
-4 [label="y = x + 10"];
+4 [label="b = 10"];
 4 -> 5;
-5 [label="if (y > 10)"];
+5 [label="return a"];
 5 -> 6;
-6 [label="printf(%d, y)"];
-6 -> 8;
-8 [label="merge"];
-8 -> 9;
-9 [label="End"];
-5 -> 7;
-7 [label="printf(%d, x)"];
-7 -> 8;
+6 [label="End"];
 }
