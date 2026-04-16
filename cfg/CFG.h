@@ -1,14 +1,19 @@
 #pragma once
+
 #include <bits/stdc++.h>
 #include "../ast/ASTNode.h"
+#include "../symbolTable/SymbolTable.h"  
 
 using namespace std;
 
 class CFGNode {
 public:
-    int id;//node number
-    string label;//what the node represent
-    vector<CFGNode*> next;//where control goes next
+    int id;
+    string label;
+    vector<CFGNode*> next;
+
+    set<string> use;
+    set<string> def;
 
     CFGNode(int i, string l) {
         id = i;
@@ -22,6 +27,9 @@ class CFG {
 public:
     CFG();
 
-    CFGNode* build(ASTNode* root);//convert ast to cfg
-    void generateDOT(CFGNode* start);//create dot file for graphviz
+    CFGNode* build(ASTNode* root);
+    void generateDOT(CFGNode* start);
 };
+
+// 🔥 DECLARE FUNCTION HERE
+void analyzeDataFlow(CFGNode* start);

@@ -9,7 +9,7 @@
 
 using namespace std;
 
-// --------  SYMBOL TABLE --------
+// -------- GLOBAL SYMBOL TABLE --------
 SymbolTable symTable;
 
 // ---------------- AST PRINT ----------------
@@ -30,16 +30,22 @@ void printAST(ASTNode* node, int depth = 0) {
 // ---------------- MAIN ----------------
 int main() {
 
+    cout << "===== COMPILER STARTED =====\n";
+
+    // -------- READ INPUT FILE --------
     ifstream file("test.c");
 
     if (!file) {
-        cout << "File not found!\n";
+        cout << "Error: File not found!\n";
         return 1;
     }
 
     stringstream buffer;
     buffer << file.rdbuf();
     string code = buffer.str();
+
+    cout << "\n===== INPUT CODE =====\n";
+    cout << code << endl;
 
     // -------- LEXER --------
     Lexer lexer(code);
@@ -52,8 +58,9 @@ int main() {
 
     // -------- PARSER --------
     Parser parser(tokens);
-    ASTNode* root = parser.parseProgram();
+    ASTNode* root = parser.parseProgram();   // ❗ if error → exit()
 
+    // -------- AST --------
     cout << "\n===== AST =====\n";
     printAST(root);
 
@@ -66,6 +73,11 @@ int main() {
     cfg.generateDOT(start);
 
     cout << "\nCFG generated successfully (cfg.dot)\n";
+
+    // -------- DATA FLOW --------
+    analyzeDataFlow(start);
+
+    cout << "\n===== COMPILER FINISHED =====\n";
 
     return 0;
 }

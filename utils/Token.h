@@ -13,8 +13,8 @@ enum TokenType {
     KW_DOUBLE,
     KW_IF,
     KW_ELSE,
+    KW_WHILE,
     KW_PRINTF,
-    KW_RETURN,
 
     // Identifiers & values
     IDENTIFIER,
@@ -34,6 +34,8 @@ enum TokenType {
     SEMICOLON,  // ;
     LPAREN,     // (
     RPAREN,     // )
+    LBRACE,     // {
+    RBRACE,     // }
     COMMA,      // ,
 
     // End
@@ -44,4 +46,5 @@ enum TokenType {
 struct Token {
     TokenType type;
     string value;
+    int line;   
 };

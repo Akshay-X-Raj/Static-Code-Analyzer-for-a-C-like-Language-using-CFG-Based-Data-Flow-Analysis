@@ -8,20 +8,24 @@ Lexer::Lexer(string input) {
     pos = 0;
 }
 
+// ---------------- TOKENIZE ----------------
 vector<Token> Lexer::tokenize() {
 
     vector<Token> tokens;
+    int line = 1;   // LINE TRACK
 
     while (pos < code.size()) {
 
         char current = code[pos];
 
+        // --------- SPACES ----------
         if (isspace(current)) {
+            if (current == '\n') line++;   // track line
             pos++;
             continue;
         }
 
-        // -------- Keywords / Identifiers --------
+        // --------- IDENTIFIER / KEYWORD ----------
         if (isalpha(current)) {
             string word;
 
@@ -31,57 +35,64 @@ vector<Token> Lexer::tokenize() {
             }
 
             if (word == "int")
-                tokens.push_back({KW_INT, word});
+                tokens.push_back({KW_INT, word, line});
             else if (word == "char")
-                tokens.push_back({KW_CHAR, word});
+                tokens.push_back({KW_CHAR, word, line});
             else if (word == "float")
-                tokens.push_back({KW_FLOAT, word});
+                tokens.push_back({KW_FLOAT, word, line});
             else if (word == "double")
-                tokens.push_back({KW_DOUBLE, word});
+                tokens.push_back({KW_DOUBLE, word, line});
             else if (word == "if")
-                tokens.push_back({KW_IF, word});
+                tokens.push_back({KW_IF, word, line});
             else if (word == "else")
-                tokens.push_back({KW_ELSE, word});
+                tokens.push_back({KW_ELSE, word, line});
+            else if (word == "while")
+                tokens.push_back({KW_WHILE, word, line});
             else if (word == "printf")
-                tokens.push_back({KW_PRINTF, word});
-            else if (word == "return")   // ✅ FIX
-                tokens.push_back({KW_RETURN, word});
+                tokens.push_back({KW_PRINTF, word, line});
             else
-                tokens.push_back({IDENTIFIER, word});
+                tokens.push_back({IDENTIFIER, word, line});
 
             continue;
         }
 
-        // -------- Numbers --------
+        // --------- NUMBER (INT + FLOAT) ----------
         if (isdigit(current)) {
             string num;
+            bool hasDot = false;
 
-            while (pos < code.size() && isdigit(code[pos])) {
+            while (pos < code.size() &&
+                  (isdigit(code[pos]) || code[pos] == '.')) {
+
+                if (code[pos] == '.') {
+                    if (hasDot) break;
+                    hasDot = true;
+                }
+
                 num += code[pos];
                 pos++;
             }
 
-            tokens.push_back({NUMBER, num});
+            tokens.push_back({NUMBER, num, line});
             continue;
         }
 
-        // -------- Strings --------
+        // --------- STRING ----------
         if (current == '"') {
             pos++;
-
             string str;
+
             while (pos < code.size() && code[pos] != '"') {
                 str += code[pos];
                 pos++;
             }
 
-            pos++;
-
-            tokens.push_back({STRING, str});
+            pos++; // closing "
+            tokens.push_back({STRING, str, line});
             continue;
         }
 
-        // -------- Operators --------
+        // --------- RELATIONAL ----------
         if (current == '>' || current == '<' || current == '=' || current == '!') {
             string op;
             op += current;
@@ -92,30 +103,80 @@ vector<Token> Lexer::tokenize() {
                 pos++;
             }
 
-            if (op == ">" || op == "<" || op == ">=" || op == "<=" ||
-                op == "==" || op == "!=") {
-                tokens.push_back({REL_OP, op});
-            }
-            else if (op == "=") {
-                tokens.push_back({ASSIGN, "="});
-            }
+            if (op == "=")
+                tokens.push_back({ASSIGN, op, line});
+            else
+                tokens.push_back({REL_OP, op, line});
 
             continue;
         }
 
-        if (current == '+') { tokens.push_back({PLUS, "+"}); pos++; continue; }
-        if (current == '-') { tokens.push_back({MINUS, "-"}); pos++; continue; }
-        if (current == '*') { tokens.push_back({MUL, "*"}); pos++; continue; }
-        if (current == '/') { tokens.push_back({DIV, "/"}); pos++; continue; }
+        // --------- ARITHMETIC ----------
+        if (current == '+') {
+            tokens.push_back({PLUS, "+", line});
+            pos++;
+            continue;
+        }
 
-        if (current == ';') { tokens.push_back({SEMICOLON, ";"}); pos++; continue; }
-        if (current == '(') { tokens.push_back({LPAREN, "("}); pos++; continue; }
-        if (current == ')') { tokens.push_back({RPAREN, ")"}); pos++; continue; }
-        if (current == ',') { tokens.push_back({COMMA, ","}); pos++; continue; }
+        if (current == '-') {
+            tokens.push_back({MINUS, "-", line});
+            pos++;
+            continue;
+        }
 
+        if (current == '*') {
+            tokens.push_back({MUL, "*", line});
+            pos++;
+            continue;
+        }
+
+        if (current == '/') {
+            tokens.push_back({DIV, "/", line});
+            pos++;
+            continue;
+        }
+
+        // --------- SYMBOLS ----------
+        if (current == ';') {
+            tokens.push_back({SEMICOLON, ";", line});
+            pos++;
+            continue;
+        }
+
+        if (current == '(') {
+            tokens.push_back({LPAREN, "(", line});
+            pos++;
+            continue;
+        }
+
+        if (current == ')') {
+            tokens.push_back({RPAREN, ")", line});
+            pos++;
+            continue;
+        }
+
+        if (current == '{') {
+            tokens.push_back({LBRACE, "{", line});
+            pos++;
+            continue;
+        }
+
+        if (current == '}') {
+            tokens.push_back({RBRACE, "}", line});
+            pos++;
+            continue;
+        }
+
+        if (current == ',') {
+            tokens.push_back({COMMA, ",", line});
+            pos++;
+            continue;
+        }
+
+        // --------- UNKNOWN ----------
         pos++;
     }
 
-    tokens.push_back({END_OF_FILE, ""});
+    tokens.push_back({END_OF_FILE, "", line});
     return tokens;
 }

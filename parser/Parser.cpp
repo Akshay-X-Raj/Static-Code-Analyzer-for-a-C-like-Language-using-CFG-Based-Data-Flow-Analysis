@@ -6,59 +6,33 @@ using namespace std;
 
 extern SymbolTable symTable;
 
+// ---------- CONSTRUCTOR ----------
 Parser::Parser(vector<Token> t) {
     tokens = t;
     pos = 0;
 }
 
-// ---------- HELPERS ----------
+// ---------- BASIC ----------
 Token Parser::peek() {
     if (pos < tokens.size()) return tokens[pos];
-    return {END_OF_FILE, ""};
+    return {END_OF_FILE, "", 0};
 }
 
 Token Parser::get() {
     if (pos < tokens.size()) return tokens[pos++];
-    return {END_OF_FILE, ""};
+    return {END_OF_FILE, "", 0};
 }
-
 bool Parser::match(TokenType type) {
     if (peek().type == type) {
         get();
         return true;
     }
-    cout << "Parser Error near: " << peek().value << endl;
-    exit(1);
+    return false;
 }
-
-// ---------- EXPRESSION TYPE CALCULATOR ----------
-string getExprType(ASTNode* node) {
-
-    if (!node) return "int";
-
-    if (node->type == "NUM")
-        return "int";
-
-    if (node->type == "ID")
-        return symTable.getType(node->value);
-
-    if (node->type == "NEG")
-        return getExprType(node->children[0]);
-
-    if (node->type == "OP") {
-        string left = getExprType(node->children[0]);
-        string right = getExprType(node->children[1]);
-
-        if (left == "double" || right == "double")
-            return "double";
-
-        if (left == "float" || right == "float")
-            return "float";
-
-        return "int";
-    }
-
-    return "int";
+// ---------- SYNTAX ERROR ----------
+void syntaxError(string msg, int line) {
+    cout << "Syntax Error at line " << line << ": " << msg << endl;
+    exit(1);
 }
 
 // ---------- PROGRAM ----------
@@ -72,7 +46,7 @@ ASTNode* Parser::parseProgram() {
     return root;
 }
 
-// ---------- STATEMENTS ----------
+// ---------- STATEMENT ----------
 ASTNode* Parser::parseStmt() {
 
     if (peek().type == KW_INT || peek().type == KW_CHAR ||
@@ -88,65 +62,100 @@ ASTNode* Parser::parseStmt() {
     if (peek().type == KW_IF)
         return parseIf();
 
-    if (peek().type == KW_RETURN)   
-        return parseReturn();
+    if (peek().type == KW_WHILE)
+        return parseWhile();
 
-    cout << "Unknown statement: " << peek().value << endl;
-    get();
+    if (peek().type == LBRACE)
+        return parseBlock();
+
+    syntaxError("Unknown statement near '" + peek().value + "'", peek().line);
     return nullptr;
 }
+
+// ---------- BLOCK ----------
+ASTNode* Parser::parseBlock() {
+    get(); // {
+
+    ASTNode* block = new ASTNode("Block");
+
+    while (peek().type != RBRACE && peek().type != END_OF_FILE) {
+        block->children.push_back(parseStmt());
+    }
+
+    if (peek().type != RBRACE)
+        syntaxError("Missing '}'", peek().line);
+
+    get(); // }
+    return block;
+}
+
 // ---------- DECL ----------
 ASTNode* Parser::parseDecl() {
-
-    Token typeToken = get();
-    string type = typeToken.value;
-
+    Token type = get();
     Token id = get();
 
     if (id.type != IDENTIFIER) {
-        cout << "Error: Expected identifier\n";
-        exit(1);
+        syntaxError("Expected identifier", id.line);
     }
 
-    symTable.add(id.value, type);
+    symTable.add(id.value, type.value);
 
-    ASTNode* expr = nullptr;
-
-    // ✅ Initialization support
-    if (peek().type == ASSIGN) {
-        get(); // =
-
-        expr = parseExpr();
-
-        string exprType = getExprType(expr);
-        symTable.checkType(id.value, exprType);
+    if (peek().type != SEMICOLON) {
+        syntaxError("Missing ';' after declaration", id.line);
     }
 
-    match(SEMICOLON);
+    get();
 
     ASTNode* node = new ASTNode("Decl", id.value);
-
-    if (expr != nullptr)
-        node->children.push_back(expr);
+    node->valueType = type.value;   
 
     return node;
 }
+
 // ---------- ASSIGN ----------
 ASTNode* Parser::parseAssign() {
-    Token id = get();
 
-    symTable.checkUse(id.value);
+    Token id = get(); // variable
 
     match(ASSIGN);
 
     ASTNode* expr = parseExpr();
 
-    // type of the expression
-    string exprType = getExprType(expr);
+    Token semi = get();
+    if (semi.type != SEMICOLON)
+        syntaxError("Missing ';' after assignment", semi.line);
 
+    // --------- TYPE DETECTION (FIX) ---------
+    string exprType = "int";
+
+    if (expr->type == "NUM") {
+        if (expr->value.find('.') != string::npos)
+            exprType = "float";
+    }
+
+    if (expr->type == "ID") {
+        exprType = symTable.getType(expr->value);
+    }
+
+    if (expr->type == "OP") {
+        // check right side too
+        string leftType = "int";
+        string rightType = "int";
+
+        if (expr->children[0]->type == "NUM" &&
+            expr->children[0]->value.find('.') != string::npos)
+            leftType = "float";
+
+        if (expr->children[1]->type == "NUM" &&
+            expr->children[1]->value.find('.') != string::npos)
+            rightType = "float";
+
+        if (leftType == "float" || rightType == "float")
+            exprType = "float";
+    }
+
+    // --------- FINAL TYPE CHECK ---------
     symTable.checkType(id.value, exprType);
-
-    match(SEMICOLON);
 
     ASTNode* node = new ASTNode("Assign");
     node->children.push_back(new ASTNode("ID", id.value));
@@ -154,78 +163,124 @@ ASTNode* Parser::parseAssign() {
 
     return node;
 }
-
 // ---------- PRINT ----------
 ASTNode* Parser::parsePrint() {
+
     get(); // printf
 
     match(LPAREN);
 
-    Token format = get();
+    Token format = get(); // "%d"
 
-    string var = "";
+    match(COMMA);
 
-    if (peek().type == COMMA) {
-        get();
-
-        Token id = get();
-        symTable.checkUse(id.value);
-        var = id.value;
-    }
+    Token var = get(); // variable
 
     match(RPAREN);
-    match(SEMICOLON);
 
-    return new ASTNode("Print", format.value + ", " + var);
-}
-ASTNode* Parser::parseReturn() {
+    Token semi = get();
+    if (semi.type != SEMICOLON)
+        syntaxError("Missing ';' after printf", semi.line);
 
-    get(); // return
+    // --------- TYPE CHECK FIX ---------
+    string varType = symTable.getType(var.value);
 
-    ASTNode* expr = parseExpr();
-
-    if (expr->type == "ID") {
-        symTable.checkUse(expr->value);
+    if (format.value == "%d" && varType != "int") {
+        cout << "Semantic Error: printf %d expects int but got " << varType << endl;
+        exit(1);
     }
 
-    match(SEMICOLON);
+    if ((format.value == "%f" || format.value == "%lf") && varType == "int") {
+        cout << "Semantic Error: printf expects float/double but got int\n";
+        exit(1);
+    }
 
-    ASTNode* node = new ASTNode("Return");
-    node->children.push_back(expr);
+    // --------- AST ----------
+    ASTNode* node = new ASTNode("Print", format.value);
+    node->children.push_back(new ASTNode("ID", var.value));
 
     return node;
 }
 
 // ---------- IF ----------
 ASTNode* Parser::parseIf() {
-    get();
 
-    match(LPAREN);
+    get(); // consume 'if'
 
+    // CHECK '('
+    if (!match(LPAREN)) {
+        int line = (pos > 0) ? tokens[pos - 1].line : 0;
+        syntaxError("Missing '(' after if", line);
+    }
+
+    // condition
     ASTNode* cond = parseCondition();
 
-    match(RPAREN);
+    // CHECK ')'
+    if (!match(RPAREN)) {
+        int line = (pos > 0) ? tokens[pos - 1].line : 0;
+        syntaxError("Missing ')'", line);
+    }
 
+    // then statement
     ASTNode* thenStmt = parseStmt();
 
-    match(KW_ELSE);
-
-    ASTNode* elseStmt = parseStmt();
+    // optional else
+    ASTNode* elseStmt = nullptr;
+    if (peek().type == KW_ELSE) {
+        get();
+        elseStmt = parseStmt();
+    }
 
     ASTNode* node = new ASTNode("If");
-    node->children = {cond, thenStmt, elseStmt};
+    node->children.push_back(cond);
+    node->children.push_back(thenStmt);
+
+    if (elseStmt)
+        node->children.push_back(elseStmt);
+
+    return node;
+}
+
+// ---------- WHILE ----------
+ASTNode* Parser::parseWhile() {
+    get();
+
+    if (peek().type != LPAREN)
+        syntaxError("Expected '(' after while", peek().line);
+
+    get();
+    ASTNode* cond = parseCondition();
+
+    if (peek().type != RPAREN)
+        syntaxError("Expected ')'", peek().line);
+
+    get();
+
+    ASTNode* body = parseStmt();
+
+    ASTNode* node = new ASTNode("While");
+    node->children = {cond, body};
 
     return node;
 }
 
 // ---------- CONDITION ----------
 ASTNode* Parser::parseCondition() {
+
     ASTNode* left = parseExpr();
+
     Token op = get();
+
+    //  used REL_OP instead of LT, GT, etc
+    if (op.type != REL_OP) {
+        syntaxError("Invalid comparison operator", op.line);
+    }
+
     ASTNode* right = parseExpr();
 
-    ASTNode* node = new ASTNode("Condition");
-    node->children = {left, new ASTNode("OP", op.value), right};
+    ASTNode* node = new ASTNode("OP", op.value);
+    node->children = {left, right};
 
     return node;
 }
@@ -240,7 +295,6 @@ ASTNode* Parser::parseExpr() {
 
         ASTNode* node = new ASTNode("OP", op.value);
         node->children = {left, right};
-
         left = node;
     }
 
@@ -256,7 +310,6 @@ ASTNode* Parser::parseTerm() {
 
         ASTNode* node = new ASTNode("OP", op.value);
         node->children = {left, right};
-
         left = node;
     }
 
@@ -266,13 +319,6 @@ ASTNode* Parser::parseTerm() {
 // ---------- FACTOR ----------
 ASTNode* Parser::parseFactor() {
 
-    if (peek().type == MINUS) {
-        get();
-        ASTNode* node = new ASTNode("NEG");
-        node->children.push_back(parseFactor());
-        return node;
-    }
-
     if (peek().type == NUMBER) {
         Token num = get();
         return new ASTNode("NUM", num.value);
@@ -280,17 +326,20 @@ ASTNode* Parser::parseFactor() {
 
     if (peek().type == IDENTIFIER) {
         Token id = get();
-        symTable.checkUse(id.value);
         return new ASTNode("ID", id.value);
     }
 
     if (peek().type == LPAREN) {
         get();
         ASTNode* node = parseExpr();
-        match(RPAREN);
+
+        if (peek().type != RPAREN)
+            syntaxError("Expected ')'", peek().line);
+
+        get();
         return node;
     }
 
-    cout << "Invalid factor\n";
-    exit(1);
+    syntaxError("Invalid expression", peek().line);
+    return nullptr;
 }
