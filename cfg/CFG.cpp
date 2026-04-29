@@ -140,7 +140,7 @@ CFGNode* buildStmt(ASTNode* stmt, CFGNode* prev, int &nodeCount) {
 
             for (auto child : stmt->children[1]->children) {
                 if (!bodyStart) {
-                    bodyStart = buildStmt(child, cond, nodeCount);
+                    bodyStart = buildStmt(child, curr, nodeCount);
                     curr = bodyStart;
                 } else {
                     curr = buildStmt(child, curr, nodeCount);

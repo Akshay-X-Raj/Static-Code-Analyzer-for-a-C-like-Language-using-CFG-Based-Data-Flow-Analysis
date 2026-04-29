@@ -1,9 +1,8 @@
 int x;
 int y;
-int z;
-int p;
+
 x = 0;
-y = 10;
+y = 0;
 
 while (x < 5) {
 
@@ -13,13 +12,5 @@ while (x < 5) {
         y = y - x;
     }
 
-    if (y > 5) {
-        z = y + x;
-    } else {
-        z = y - x;
-    }
-
     x = x + 1;
 }
-
-printf("%d", y);
